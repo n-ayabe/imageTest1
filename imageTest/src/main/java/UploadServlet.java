@@ -25,7 +25,7 @@ public class UploadServlet extends HttpServlet {
 	private static final String DB_USER = "postgres";
 	private static final String DB_PASSWORD = "password";
 
-	private static final String UPLOAD_DIR = "images"; // 保存先フォルダー名（アプリケーションのルート下）
+	private static final String UPLOAD_DIR = "imag"; // 保存先フォルダー名（アプリケーションのルート下）
 
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
