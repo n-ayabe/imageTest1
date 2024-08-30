@@ -10,5 +10,6 @@
         <input type="file" name="image" accept="imag/*" />
         <input type="submit" value="Upload" />
     </form>
+    
 </body>
 </html>
