@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -25,45 +26,52 @@ public class UploadServlet extends HttpServlet {
 	private static final String DB_USER = "postgres";
 	private static final String DB_PASSWORD = "password";
 
-	private static final String UPLOAD_DIR = "imag"; // 保存先フォルダー名（アプリケーションのルート下）
+    private static final String UPLOAD_DIR = "imag"; // webapp フォルダ内の imag フォルダ
 
-	@Override
-	protected void doPost(HttpServletRequest request, HttpServletResponse response)
-			throws ServletException, IOException {
-		Part filePart = request.getPart("image"); // Retrieves <input type="file" name="image">
-		String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // Get the original file name
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Part filePart = request.getPart("image"); // Retrieves <input type="file" name="image">
+        String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // Get the original file name
 
-		// Generate a unique file name by appending timestamp
-		String uniqueFileName = generateUniqueFileName(fileName);
+        // Generate a unique file name by appending timestamp
+        String uniqueFileName = generateUniqueFileName(fileName);
 
-		// Get the path to the upload directory
-		String uploadPath = getServletContext().getRealPath("") + File.separator + UPLOAD_DIR;
-		File uploadDir = new File(uploadPath);
-		if (!uploadDir.exists()) {
-			uploadDir.mkdir();
-		}
-		File file = new File(uploadPath + File.separator + uniqueFileName);
+        // Get the absolute path of the upload directory inside webapp
+        String uploadPath = getServletContext().getRealPath("/") + File.separator + UPLOAD_DIR;
+        System.out.println("Upload path: " + uploadPath); // Debugging line to check path
 
-		// Save file on the server
-		try (InputStream inputStream = filePart.getInputStream()) {
-			Files.copy(inputStream, file.toPath());
-		}
+        File uploadDir = new File(uploadPath);
+        if (!uploadDir.exists()) {
+            boolean dirCreated = uploadDir.mkdirs(); // Create the directory if it does not exist
+            System.out.println("Directory created: " + dirCreated); // Debugging line to check directory creation
+        } else {
+            System.out.println("Directory already exists."); // Debugging line to confirm directory exists
+        }
 
-		// Save file path to the database
-		try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
-			String sql = "INSERT INTO images (img) VALUES (?)";
-			try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-				pstmt.setString(1, UPLOAD_DIR + File.separator + uniqueFileName);
-				pstmt.executeUpdate();
-			}
-			response.sendRedirect("display.jsp");
-		} catch (SQLException e) {
-			throw new ServletException("Database error", e);
-		}
-	}
+        File file = new File(uploadPath + File.separator + uniqueFileName);
+        System.out.println("File to save: " + file.getAbsolutePath()); // Debugging line to check file path
 
-	private String generateUniqueFileName(String originalFileName) {
-		String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-		return timeStamp + "_" + originalFileName;
-	}
+        // Save file on the server
+        try (InputStream inputStream = filePart.getInputStream()) {
+            Files.copy(inputStream, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("File saved at: " + file.getAbsolutePath()); // Debugging line to confirm file save
+        }
+
+        // Save file path to the database
+        try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+            String sql = "INSERT INTO images (img) VALUES (?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, UPLOAD_DIR + File.separator + uniqueFileName);
+                pstmt.executeUpdate();
+            }
+            response.sendRedirect("display.jsp");
+        } catch (SQLException e) {
+            throw new ServletException("Database error", e);
+        }
+    }
+
+    private String generateUniqueFileName(String originalFileName) {
+        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        return timeStamp + "_" + originalFileName;
+    }
 }
