@@ -81,7 +81,7 @@ public class MosaicServlet extends HttpServlet {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
             String sql = "INSERT INTO images (img) VALUES (?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, UPLOAD_DIR + "/" + uniqueFileName);
+                pstmt.setString(1, uniqueFileName);
                 pstmt.executeUpdate();
             }
             response.sendRedirect("display.jsp");
